@@ -89,7 +89,7 @@ var Cage = (function () {
 
 module.exports = Cage;
 
-},{"./grid":4,"./model-cache":8,"three":10}],2:[function(require,module,exports){
+},{"./grid":4,"./model-cache":8,"three":11}],2:[function(require,module,exports){
 "use strict";
 
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -204,7 +204,7 @@ var CameraTexture = (function () {
 
 module.exports = CameraTexture;
 
-},{"three":10}],3:[function(require,module,exports){
+},{"three":11}],3:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -245,6 +245,8 @@ var Freedom = (function () {
           var geometry = _ref.geometry;
           var texture = _ref.texture;
 
+          _this.texture = texture;
+
           geometry.center();
 
           var material = _this.material = new THREE.MeshStandardMaterial({
@@ -263,6 +265,13 @@ var Freedom = (function () {
           if (callback) callback(mesh);
         });
       }
+    },
+    setTexture: {
+      value: function setTexture() {
+        var texture = arguments[0] === undefined ? this.texture : arguments[0];
+
+        this.material.map = texture;
+      }
     }
   });
 
@@ -271,7 +280,7 @@ var Freedom = (function () {
 
 module.exports = Freedom;
 
-},{"./model-cache":8,"three":10}],4:[function(require,module,exports){
+},{"./model-cache":8,"three":11}],4:[function(require,module,exports){
 "use strict";
 
 module.exports = createGrid;
@@ -326,7 +335,7 @@ function createGrid() {
   return container;
 }
 
-},{"three":10}],5:[function(require,module,exports){
+},{"three":11}],5:[function(require,module,exports){
 
 
 /**
@@ -983,7 +992,7 @@ OBJLoader.prototype = {
 
 };
 
-},{"three":10}],6:[function(require,module,exports){
+},{"three":11}],6:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -997,6 +1006,8 @@ var Freedom = _interopRequire(require("./freedom"));
 var Cage = _interopRequire(require("./cage"));
 
 var Mirrors = _interopRequire(require("./mirrors"));
+
+var VideoTexture = _interopRequire(require("./video-texture"));
 
 if (isMobile.any) {
   var mobileWarning = document.createElement("div");
@@ -1038,7 +1049,8 @@ function go() {
     lastTime: null,
     freedom: null,
     cage: null,
-    mirrors: null
+    mirrors: null,
+    bookIsBird: false
   };
 
   window.addEventListener("resize", resize);
@@ -1046,6 +1058,7 @@ function go() {
 
   createScene(function () {
     console.log("redy");
+    setTimeout(mushTextures, 2000);
   });
   renderer.render(scene, camera);
   start();
@@ -1070,20 +1083,39 @@ function go() {
 
     TWEEN.update(time);
 
-    if (state.freedom) {
-      state.freedom.update(delta);
-    }
-    if (state.cage) {
-      state.cage.update(delta);
-    }
-    if (state.mirrors) {
-      state.mirrors.update(delta);
-    }
+    if (state.freedom) state.freedom.update(delta);
+    if (state.cage) state.cage.update(delta);
+    if (state.mirrors) state.mirrors.update(delta);
+    if (state.videoTexture) state.videoTexture.update(delta);
 
     renderer.render(scene, camera);
     state.lastTime = time;
 
     window.requestAnimationFrame(update);
+  }
+
+  function mushTextures() {
+    var freedom = state.freedom;
+    var mirrors = state.mirrors;
+    var videoTexture = state.videoTexture;
+
+    state.bookIsBird = !state.bookIsBird;
+    if (state.bookIsBird) {
+      freedom.setTexture(videoTexture.texture);
+      for (var i = 0; i < mirrors.length; i++) {
+        if (Math.random() < 0.5) {
+          mirrors.setMirrorTexture(i, videoTexture.texture);
+        }
+      }
+    } else {
+      state.freedom.setTexture();
+      for (var i = 0; i < mirrors.length; i++) {
+        mirrors.setMirrorTexture(i);
+      }
+    }
+
+    var time = Math.random() * 4000 + 200;
+    setTimeout(mushTextures, time);
   }
 
   function createScene(callback) {
@@ -1093,6 +1125,7 @@ function go() {
     makeLights();
     makeGround();
     makeMirrors();
+    makeVideo();
 
     load(makeCage);
     load(makeFreedom);
@@ -1114,6 +1147,8 @@ function go() {
       scene.add(state.freedom.mesh);
       scene.add(state.cage.mesh);
 
+      state.videoTexture.play();
+
       if (callback) callback();
     }
   }
@@ -1122,7 +1157,7 @@ function go() {
     var ambient = new THREE.AmbientLight(2236962, 0.1);
     scene.add(ambient);
 
-    var lights = [new THREE.PointLight(16711680, 1, 30, 4), new THREE.SpotLight(16777215, 1.5, 20, 0.6), new THREE.PointLight(255, 1, 30, 4)];
+    var lights = [new THREE.PointLight(16711680, 1, 30, 4), new THREE.SpotLight(16777215, 1.5, 20, 0.3), new THREE.PointLight(255, 1, 30, 4)];
 
     lights[0].position.set(-0.5, -0.5, 3);
     lights[1].position.set(0, -6, 9);
@@ -1159,6 +1194,14 @@ function go() {
     state.mirrors.activate();
   }
 
+  function makeVideo() {
+    state.videoTexture = new VideoTexture({
+      video: "video/v1_projection.mp4",
+      width: 720, height: 480
+    });
+    state.videoTexture.video.playbackRate = 0.75;
+  }
+
   function makeFreedom(cb) {
     var freedom = new Freedom();
     freedom.load(function () {
@@ -1176,7 +1219,7 @@ function go() {
   }
 }
 
-},{"./cage":1,"./freedom":3,"./mirrors":7,"ismobilejs":9,"three":10,"tween.js":11}],7:[function(require,module,exports){
+},{"./cage":1,"./freedom":3,"./mirrors":7,"./video-texture":9,"ismobilejs":10,"three":11,"tween.js":12}],7:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -1210,30 +1253,24 @@ var Mirrors = (function () {
     this.cameraTextures = [];
     this.mirrors = [];
 
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 2; i++) {
       var cameraTexture = new CameraTexture({ renderer: renderer, scene: scene });
       this.cameraTextures.push(cameraTexture);
 
       var mirror = this._makeMirror(cameraTexture);
 
-      var light = new THREE.PointLight(8947848, 1, 20, 2);
+      var light = new THREE.PointLight(16777215, 1, 20, 1);
       mirror.add(light);
 
       switch (i) {
         case 0:
-          mirror.position.set(0, 0, -size);
-          cameraTexture.cameraParent.position.set(0, 0, -size + 0.1);
-          cameraTexture.cameraParent.rotation.y = Math.PI;
-          light.position.set(2, 2, 0);
-          break;
-        case 1:
           mirror.rotation.y = Math.PI / 2;
           mirror.position.set(-size, 0, 0);
           cameraTexture.cameraParent.position.set(-size + 0.1, 0, 0);
           cameraTexture.cameraParent.rotation.y = -Math.PI / 2;
           light.position.set(-5, 2, 0);
           break;
-        case 2:
+        case 1:
           mirror.rotation.y = -Math.PI / 2;
           mirror.position.set(size, 0, 0);
           cameraTexture.cameraParent.position.set(size - 0.1, 0, 0);
@@ -1245,9 +1282,28 @@ var Mirrors = (function () {
       this.mirrors.push(mirror);
       this.container.add(mirror);
     }
+
+    this.length = this.mirrors.length;
   }
 
   _createClass(Mirrors, {
+    getMirror: {
+      value: function getMirror(i) {
+        return this.mirrors[i];
+      }
+    },
+    setMirrorTexture: {
+      value: function setMirrorTexture(i) {
+        var texture = arguments[1] === undefined ? null : arguments[1];
+
+        var mirror = this.getMirror(i);
+        if (!texture) {
+          texture = mirror._cameraTexture.texture;
+        }
+
+        mirror.material.map = texture;
+      }
+    },
     activate: {
       value: function activate() {
         this.state.active = true;
@@ -1271,7 +1327,7 @@ var Mirrors = (function () {
     },
     _makeMirror: {
       value: function _makeMirror(cameraTexture) {
-        var geometry = new THREE.BoxBufferGeometry(8, 8, 0.1);
+        var geometry = new THREE.BoxBufferGeometry(8, 6, 0.1);
         geometry.center();
 
         var material = new THREE.MeshStandardMaterial({
@@ -1295,7 +1351,7 @@ var Mirrors = (function () {
 
 module.exports = Mirrors;
 
-},{"./camera-texture":2,"three":10}],8:[function(require,module,exports){
+},{"./camera-texture":2,"three":11}],8:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -1346,7 +1402,91 @@ function load(path, callback) {
   });
 }
 
-},{"./lib/OBJLoader":5,"three":10}],9:[function(require,module,exports){
+},{"./lib/OBJLoader":5,"three":11}],9:[function(require,module,exports){
+"use strict";
+
+var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
+
+var THREE = window.THREE || require("three");
+
+var VideoTexture = (function () {
+  function VideoTexture() {
+    var _this = this;
+
+    var options = arguments[0] === undefined ? {} : arguments[0];
+
+    _classCallCheck(this, VideoTexture);
+
+    var video = options.video;
+    if (typeof video === "string") {
+      var url = video;
+      video = document.createElement("video");
+      video.preload = true;
+      video.autoplay = false;
+      video.muted = true;
+      video.src = url;
+    }
+
+    this.video = video;
+    video.addEventListener("canplaythrough", function () {
+      if (options.onLoad) options.onLoad();
+    }, false);
+    video.addEventListener("ended", function () {
+      video.currentTime = 0;
+      setTimeout(function () {
+        if (_this.playing) _this.play();
+      }, 200);
+    }, false);
+
+    this.videoCanvas = document.createElement("canvas");
+    this.videoCanvas.width = options.width || 320;
+    this.videoCanvas.height = options.height || 240;
+
+    this.videoContext = this.videoCanvas.getContext("2d");
+    this.videoContext.fillStyle = options.backgroundColor || "#000"; // background color if no video present
+    this.videoContext.fillRect(0, 0, this.videoCanvas.width, this.videoCanvas.height);
+
+    this.texture = new THREE.Texture(this.videoCanvas);
+    this.texture.minFilter = THREE.LinearFilter;
+    this.texture.magFilter = THREE.LinearFilter;
+    this.texture.format = THREE.RGBFormat;
+    this.texture.generateMipmaps = false;
+  }
+
+  _createClass(VideoTexture, {
+    play: {
+      value: function play() {
+        this.playing = true;
+        this.video.play();
+      }
+    },
+    pause: {
+      value: function pause() {
+        this.playing = false;
+        this.video.pause();
+      }
+    },
+    update: {
+      value: function update() {
+        if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+          this.videoContext.drawImage(this.video, 0, 0);
+
+          if (this.texture) {
+            this.texture.needsUpdate = true;
+          }
+        }
+      }
+    }
+  });
+
+  return VideoTexture;
+})();
+
+module.exports = VideoTexture;
+
+},{"three":11}],10:[function(require,module,exports){
 /**
  * isMobile.js v0.4.0
  *
@@ -1485,7 +1625,7 @@ function load(path, callback) {
 
 })(this);
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -43784,7 +43924,7 @@ function load(path, callback) {
 
 })));
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (process){
 /**
  * Tween.js - Licensed under the MIT license
@@ -44658,7 +44798,7 @@ TWEEN.Interpolation = {
 })(this);
 
 }).call(this,require('_process'))
-},{"_process":12}],12:[function(require,module,exports){
+},{"_process":13}],13:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};

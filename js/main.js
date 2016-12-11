@@ -6,6 +6,7 @@ let isMobile = require('ismobilejs');
 import Freedom from './freedom';
 import Cage from './cage';
 import Mirrors from './mirrors';
+import VideoTexture from './video-texture';
 
 if (isMobile.any) {
   let mobileWarning = document.createElement('div');
@@ -47,7 +48,8 @@ function go () {
     lastTime: null,
     freedom: null,
     cage: null,
-    mirrors: null
+    mirrors: null,
+    bookIsBird: false
   };
 
   window.addEventListener('resize', resize);
@@ -55,6 +57,7 @@ function go () {
 
   createScene(() => {
     console.log('redy');
+    setTimeout(mushTextures, 2000);
   });
   renderer.render(scene, camera);
   start();
@@ -79,20 +82,37 @@ function go () {
 
     TWEEN.update(time);
 
-    if (state.freedom) {
-      state.freedom.update(delta);
-    }
-    if (state.cage) {
-      state.cage.update(delta);
-    }
-    if (state.mirrors) {
-      state.mirrors.update(delta);
-    }
+    if (state.freedom) state.freedom.update(delta);
+    if (state.cage) state.cage.update(delta);
+    if (state.mirrors) state.mirrors.update(delta);
+    if (state.videoTexture) state.videoTexture.update(delta);
 
     renderer.render(scene, camera);
     state.lastTime = time;
 
     window.requestAnimationFrame(update);
+  }
+
+  function mushTextures () {
+    let { freedom, mirrors, videoTexture } = state;
+
+    state.bookIsBird = !state.bookIsBird;
+    if (state.bookIsBird) {
+      freedom.setTexture(videoTexture.texture);
+      for (let i = 0; i < mirrors.length; i++) {
+        if (Math.random() < 0.5) {
+          mirrors.setMirrorTexture(i, videoTexture.texture);
+        }
+      }
+    } else {
+      state.freedom.setTexture();
+      for (let i = 0; i < mirrors.length; i++) {
+        mirrors.setMirrorTexture(i);
+      }
+    }
+
+    let time = Math.random() * 4000 + 200;
+    setTimeout(mushTextures, time);
   }
 
   function createScene (callback) {
@@ -102,6 +122,7 @@ function go () {
     makeLights();
     makeGround();
     makeMirrors();
+    makeVideo();
 
     load(makeCage);
     load(makeFreedom);
@@ -123,6 +144,8 @@ function go () {
       scene.add(state.freedom.mesh);
       scene.add(state.cage.mesh);
 
+      state.videoTexture.play();
+
       if (callback) callback();
     }
   }
@@ -133,7 +156,7 @@ function go () {
 
     let lights = [
       new THREE.PointLight(0xff0000, 1, 30, 4),
-      new THREE.SpotLight(0xffffff, 1.5, 20, 0.6),
+      new THREE.SpotLight(0xffffff, 1.5, 20, 0.3),
       new THREE.PointLight(0x0000ff, 1, 30, 4)
     ];
 
@@ -170,6 +193,14 @@ function go () {
   function makeMirrors () {
     state.mirrors = new Mirrors({ renderer, scene });
     state.mirrors.activate();
+  }
+
+  function makeVideo () {
+    state.videoTexture = new VideoTexture({
+      video: 'video/v1_projection.mp4',
+      width: 720, height: 480
+    });
+    state.videoTexture.video.playbackRate = 0.75;
   }
 
   function makeFreedom (cb) {

@@ -20,6 +20,8 @@ export default class Freedom {
     mesh.scale.set(10, 10, 10);
 
     loadModel('freedom', ({ geometry, texture }) => {
+      this.texture = texture;
+
       geometry.center();
 
       let material = this.material = new THREE.MeshStandardMaterial({
@@ -37,5 +39,9 @@ export default class Freedom {
 
       if (callback) callback(mesh);
     });
+  }
+
+  setTexture (texture = this.texture) {
+    this.material.map = texture;
   }
 }

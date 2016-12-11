@@ -1,5 +1,5 @@
 
-let THREE = window.THREE || require('../../frampton/node_modules/three');
+let THREE = window.THREE || require('three');
 
 export default class VideoTexture {
   constructor (options = {}) {
@@ -9,6 +9,7 @@ export default class VideoTexture {
       video = document.createElement('video');
       video.preload = true;
       video.autoplay = false;
+      video.muted = true;
       video.src = url;
     }
 
