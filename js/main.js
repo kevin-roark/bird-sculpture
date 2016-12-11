@@ -3,7 +3,8 @@ let THREE = require('three');
 let TWEEN = require('tween.js');
 let isMobile = require('ismobilejs');
 
-import Sculpture from './sculpture';
+import Freedom from './freedom';
+import Cage from './cage';
 
 if (isMobile.any) {
   let mobileWarning = document.createElement('div');
@@ -20,7 +21,7 @@ function go () {
   let renderer = new THREE.WebGLRenderer({
     antialias: true
   });
-  renderer.setClearColor(0xffffff);
+  renderer.setClearColor(0x222222);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -28,7 +29,7 @@ function go () {
   window.scene = scene;
 
   let camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10000);
-  camera.position.z = 10;
+  camera.position.z = 1;
   scene.add(camera);
 
   let container = new THREE.Object3D();
@@ -43,7 +44,8 @@ function go () {
   let state = {
     startTime: null,
     lastTime: null,
-    sculture: null
+    freedom: null,
+    cage: null
   };
 
   window.addEventListener('resize', resize);
@@ -75,7 +77,9 @@ function go () {
 
     TWEEN.update(time);
 
-    if (state.sculpture) state.sculpture.update(delta);
+    if (state.freedom) {
+      state.freedom.update(delta);
+    }
 
     renderer.render(scene, camera);
     state.lastTime = time;
@@ -85,19 +89,28 @@ function go () {
 
   function createScene (callback) {
     let remaining = 0;
+    let hasLoaded = false;
 
     makeLights();
-    load(makeSculpture);
+    load(makeCage);
+    load(makeFreedom);
 
     function load (fn) {
       remaining += 1;
       fn(() => {
         remaining -= 1;
-        if (remaining === 0 && callback) {
-          callback();
-          callback = null;
+        if (remaining === 0 && !hasLoaded) {
+          loaded();
+          hasLoaded = true;
         }
       });
+    }
+
+    function loaded () {
+      state.cage.mesh.add(state.freedom.mesh);
+      scene.add(state.cage.mesh);
+
+      if (callback) callback();
     }
   }
 
@@ -106,12 +119,18 @@ function go () {
     scene.add(ambient);
   }
 
-  function makeSculpture (cb) {
-    let sculpture = new Sculpture();
-    sculpture.load(() => {
-      state.sculpture = sculpture;
-      scene.add(sculpture.container);
+  function makeFreedom (cb) {
+    let freedom = new Freedom();
+    freedom.load(() => {
+      state.freedom = freedom;
+      if (cb) cb();
+    });
+  }
 
+  function makeCage (cb) {
+    let cage = new Cage();
+    cage.load(() => {
+      state.cage = cage;
       if (cb) cb();
     });
   }

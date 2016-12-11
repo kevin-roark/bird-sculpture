@@ -23,6 +23,7 @@ canvas {
 }
 
 .info {
+  display: none;
   z-index: 1;
   position: fixed;
   top: 10px;

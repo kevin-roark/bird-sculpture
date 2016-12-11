@@ -1,65 +1,149 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
 
+var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
+
 var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
 
 var THREE = require("three");
 
-var textureLoader = new THREE.TextureLoader();
+var loadModel = _interopRequire(require("./model-cache"));
 
-var Thumbnail = (function () {
-  function Thumbnail(_ref) {
-    var photo = _ref.photo;
-    var _ref$scale = _ref.scale;
-    var scale = _ref$scale === undefined ? 1 : _ref$scale;
+var createGrid = _interopRequire(require("./grid"));
 
-    _classCallCheck(this, Thumbnail);
+var DEFAULT_MODE = "none";
 
-    this.photo = photo;
-    this.scale = scale;
+var Cage = (function () {
+  function Cage() {
+    var _ref = arguments[0] === undefined ? {} : arguments[0];
+
+    var _ref$mode = _ref.mode;
+    var mode = _ref$mode === undefined ? DEFAULT_MODE : _ref$mode;
+
+    _classCallCheck(this, Cage);
+
+    this.mode = mode;
   }
 
-  _createClass(Thumbnail, {
+  _createClass(Cage, {
     load: {
       value: function load(callback) {
         var _this = this;
 
         var _ref = this;
 
-        var photo = _ref.photo;
-        var scale = _ref.scale;
+        var mode = _ref.mode;
 
-        var texturePath = "models/" + photo.seriesPath + "/" + photo.path + "/Thumbnail.jpg";
-        textureLoader.load(texturePath, function (texture) {
-          var length = 1 * scale;
-          var geometry = new THREE.BoxBufferGeometry(length, length, 0.2);
+        switch (mode) {
+          case "1":
+          case "2":
+          case "3":
+            {
+              var path = "cage" + mode;
+              loadModel(path, function (_ref2) {
+                var geometry = _ref2.geometry;
+                var texture = _ref2.texture;
 
-          var material = new THREE.MeshStandardMaterial({
-            color: 16777215,
+                geometry.center();
+
+                var material = _this.material = new THREE.MeshStandardMaterial({
+                  roughness: 0.8,
+                  metalness: 0.3,
+                  map: texture
+                });
+                material.side = THREE.DoubleSide;
+
+                var mesh = _this.mesh = new THREE.Mesh(geometry, material);
+                callback(mesh);
+              });
+            }break;
+
+          default:
+            {
+              setTimeout(function () {
+                var mesh = _this.mesh = createGrid({ length: 0.33, gridLength: 7 });
+                console.log(_this.mesh);
+                callback(mesh);
+              }, 1);
+            }break;
+        }
+      }
+    }
+  });
+
+  return Cage;
+})();
+
+module.exports = Cage;
+
+},{"./grid":3,"./model-cache":6,"three":8}],2:[function(require,module,exports){
+"use strict";
+
+var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
+
+var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
+
+var THREE = require("three");
+
+var loadModel = _interopRequire(require("./model-cache"));
+
+var Freedom = (function () {
+  function Freedom() {
+    _classCallCheck(this, Freedom);
+
+    this.state = {
+      rps: 0.5
+    };
+  }
+
+  _createClass(Freedom, {
+    update: {
+      value: function update(delta) {
+        if (this.mesh) {
+          this.mesh.rotation.y += this.state.rps * (delta / 1000);
+        }
+      }
+    },
+    load: {
+      value: function load(callback) {
+        var _this = this;
+
+        var mesh = this.mesh = new THREE.Object3D();
+
+        loadModel("freedom", function (_ref) {
+          var geometry = _ref.geometry;
+          var texture = _ref.texture;
+
+          geometry.center();
+
+          var material = _this.material = new THREE.MeshStandardMaterial({
             roughness: 0.8,
             metalness: 0.3,
             map: texture
           });
           material.side = THREE.DoubleSide;
 
-          var mesh = _this.mesh = new THREE.Mesh(geometry, material);
-          mesh._thumbnail = _this;
+          var book = _this.book = new THREE.Mesh(geometry, material);
+          book.rotation.x = -0.24;
+          book.rotation.z = -Math.PI / 2;
+          mesh.add(book);
+
           if (callback) callback(mesh);
         });
       }
     }
   });
 
-  return Thumbnail;
+  return Freedom;
 })();
 
-module.exports = Thumbnail;
+module.exports = Freedom;
 
-},{"three":11}],2:[function(require,module,exports){
-module.exports=[{"name":"Domestic","path":"domestic","photos":[{"name":"Bedroom","path":"bedroom","seriesPath":"domestic","type":"object"},{"name":"Den","path":"den","seriesPath":"domestic","type":"object"},{"name":"Elegant Living Room","path":"elegant-living-room","seriesPath":"domestic","type":"object"},{"name":"Kitchen","path":"kitchen","seriesPath":"domestic","type":"object"},{"name":"Living Room","path":"living-room","seriesPath":"domestic","type":"object"}]},{"name":"Friends","path":"friends","photos":[{"name":"Desmond","path":"desmond","seriesPath":"friends","type":"object"},{"name":"Dylan On The Couch","path":"dylan-on-the-couch","seriesPath":"friends","type":"object"},{"name":"Half Dylan","path":"half-dylan","seriesPath":"friends","type":"object"},{"name":"Jaq Montauk","path":"jaq-montauk","seriesPath":"friends","type":"object"},{"name":"Nigel","path":"nigel","seriesPath":"friends","type":"object"},{"name":"Riddhi Montauk","path":"riddhi-montauk","seriesPath":"friends","type":"object"},{"name":"Sam","path":"sam","seriesPath":"friends","type":"object"},{"name":"Seb Montauk","path":"seb-montauk","seriesPath":"friends","type":"object"}]},{"name":"Natural History","path":"natural-history","photos":[{"name":"Alien Rocks","path":"alien-rocks","seriesPath":"natural-history","type":"object"},{"name":"Big Fly","path":"big-fly","seriesPath":"natural-history","type":"object"},{"name":"Evolution","path":"evolution","seriesPath":"natural-history","type":"object"},{"name":"Farm Scene","path":"farm-scene","seriesPath":"natural-history","type":"object"},{"name":"Frog Shadow","path":"frog-shadow","seriesPath":"natural-history","type":"object"},{"name":"Lot Of Skulls","path":"lot-of-skulls","seriesPath":"natural-history","type":"object"},{"name":"Three Skulls","path":"three-skulls","seriesPath":"natural-history","type":"object"},{"name":"True Monkey","path":"true-monkey","seriesPath":"natural-history","type":"object"}]},{"name":"Objects 1","path":"objects-1","photos":[{"name":"Angel","path":"angel","seriesPath":"objects-1","type":"object"},{"name":"Bad Father","path":"bad-father","seriesPath":"objects-1","type":"object"},{"name":"Basketball","path":"basketball","seriesPath":"objects-1","type":"object"},{"name":"Ben Franklin Bust","path":"ben-franklin-bust","seriesPath":"objects-1","type":"object"},{"name":"Broken Eagle","path":"broken-eagle","seriesPath":"objects-1","type":"object"},{"name":"Father","path":"father","seriesPath":"objects-1","type":"object"},{"name":"Freedom","path":"freedom","seriesPath":"objects-1","type":"object"},{"name":"Gator","path":"gator","seriesPath":"objects-1","type":"object"},{"name":"Grotto","path":"grotto","seriesPath":"objects-1","type":"object"},{"name":"Laptop","path":"laptop","seriesPath":"objects-1","type":"object"},{"name":"Last Supper","path":"last-supper","seriesPath":"objects-1","type":"object"},{"name":"Marble Bust","path":"marble-bust","seriesPath":"objects-1","type":"object"},{"name":"Mary","path":"mary","seriesPath":"objects-1","type":"object"},{"name":"Minion","path":"minion","seriesPath":"objects-1","type":"object"},{"name":"Rock","path":"rock","seriesPath":"objects-1","type":"object"},{"name":"Rocky","path":"rocky","seriesPath":"objects-1","type":"object"},{"name":"Video Camera","path":"video-camera","seriesPath":"objects-1","type":"object"}]},{"name":"Roark","path":"roark","photos":[{"name":"Isabella","path":"isabella","seriesPath":"roark","type":"object"},{"name":"Kevin Sr","path":"kevin-sr","seriesPath":"roark","type":"object"},{"name":"Laurie","path":"laurie","seriesPath":"roark","type":"object"},{"name":"Laurie And Mom","path":"laurie-and-mom","seriesPath":"roark","type":"object"},{"name":"Melanie","path":"melanie","seriesPath":"roark","type":"object"},{"name":"Moses","path":"moses","seriesPath":"roark","type":"object"}]},{"name":"Still Life","path":"still-life","photos":[{"name":"Bella With Dog","path":"bella-with-dog","seriesPath":"still-life","type":"object"},{"name":"Dylan On Github","path":"dylan-on-github","seriesPath":"still-life","type":"object"},{"name":"Laurie In The Mirror","path":"laurie-in-the-mirror","seriesPath":"still-life","type":"object"},{"name":"Meme Nancy Reading","path":"meme-nancy-reading","seriesPath":"still-life","type":"object"},{"name":"Myself In The Mirror","path":"myself-in-the-mirror","seriesPath":"still-life","type":"object"},{"name":"Photo Of Rocks","path":"photo-of-rocks","seriesPath":"still-life","type":"object"}]}]
-},{}],3:[function(require,module,exports){
+},{"./model-cache":6,"three":8}],3:[function(require,module,exports){
 "use strict";
 
 module.exports = createGrid;
@@ -114,7 +198,7 @@ function createGrid() {
   return container;
 }
 
-},{"three":11}],4:[function(require,module,exports){
+},{"three":8}],4:[function(require,module,exports){
 
 
 /**
@@ -771,7 +855,7 @@ OBJLoader.prototype = {
 
 };
 
-},{"three":11}],5:[function(require,module,exports){
+},{"three":8}],5:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -780,15 +864,9 @@ var THREE = require("three");
 var TWEEN = require("tween.js");
 var isMobile = require("ismobilejs");
 
-var seriesData = _interopRequire(require("./data"));
+var Freedom = _interopRequire(require("./freedom"));
 
-var ThumbnailPile = _interopRequire(require("./thumbnail-pile"));
-
-var PhotoView = _interopRequire(require("./photo-view"));
-
-var MouseIntersector = _interopRequire(require("./mouse-intersector"));
-
-var CAMERA_POSITION = { home: 30, view: 10 };
+var Cage = _interopRequire(require("./cage"));
 
 if (isMobile.any) {
   var mobileWarning = document.createElement("div");
@@ -805,7 +883,7 @@ function go() {
   var renderer = new THREE.WebGLRenderer({
     antialias: true
   });
-  renderer.setClearColor(16777215);
+  renderer.setClearColor(2236962);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -813,7 +891,7 @@ function go() {
   window.scene = scene;
 
   var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10000);
-  camera.position.z = CAMERA_POSITION.home;
+  camera.position.z = 1;
   scene.add(camera);
 
   var container = new THREE.Object3D();
@@ -822,79 +900,21 @@ function go() {
   document.body.appendChild(renderer.domElement);
 
   var dom = {
-    info: document.querySelector(".info"),
-    seriesTitle: document.querySelector(".series-title"),
-    photoViewInterface: document.querySelector(".photo-view-interface"),
-    photoViewCloseButton: document.querySelector(".photo-view-close-button"),
-    photoViewControlButtons: {
-      wireframe: document.querySelector("#wireframe-button"),
-      texture: document.querySelector("#texture-button"),
-      lighting: document.querySelector("#lighting-button"),
-      background: document.querySelector("#background-button")
-    }
+    info: document.querySelector(".info")
   };
 
   var state = {
-    loadingPhotoView: false,
-    photoInView: null,
     startTime: null,
-    lastTime: null
+    lastTime: null,
+    freedom: null,
+    cage: null
   };
-
-  var thumbnailMeshes = [];
 
   window.addEventListener("resize", resize);
   resize();
 
   createScene(function () {
-    var thumbnailIntersector = new MouseIntersector({ camera: camera, renderer: renderer, meshes: thumbnailMeshes });
-    thumbnailIntersector.addHoverListener(function (mesh) {
-      if (state.photoInView || state.loadingPhotoView) return;
-      setHoverThumnbail(mesh ? mesh._thumbnail : null);
-    });
-    thumbnailIntersector.addClickListener(function (mesh) {
-      if (state.photoInView || state.loadingPhotoView) return;
-      viewPhoto(mesh ? mesh._thumbnail.photo : null);
-    });
-
-    document.addEventListener("keydown", function (ev) {
-      switch (ev.keyCode) {
-        case 27:
-          // escape
-          exitCurrentPhotoView();
-          break;
-        default:
-          if (state.photoInView) state.photoInView.keydown(ev);
-          break;
-      }
-    });
-
-    document.addEventListener("mousedown", function (ev) {
-      if (state.photoInView) state.photoInView.mousedown(ev);
-    });
-
-    document.addEventListener("mouseup", function (ev) {
-      if (state.photoInView) state.photoInView.mouseup(ev);
-    });
-
-    document.addEventListener("mousemove", function (ev) {
-      if (state.photoInView) state.photoInView.mousemove(ev);
-    });
-
-    dom.photoViewCloseButton.addEventListener("click", exitCurrentPhotoView);
-
-    dom.photoViewControlButtons.wireframe.addEventListener("click", function () {
-      if (state.photoInView) state.photoInView.wireframeButtonPressed();
-    });
-    dom.photoViewControlButtons.texture.addEventListener("click", function () {
-      if (state.photoInView) state.photoInView.textureButtonPressed();
-    });
-    dom.photoViewControlButtons.lighting.addEventListener("click", function () {
-      if (state.photoInView) state.photoInView.lightingButtonPressed();
-    });
-    dom.photoViewControlButtons.background.addEventListener("click", function () {
-      if (state.photoInView) state.photoInView.backgroundButtonPressed();
-    });
+    console.log("redy");
   });
   renderer.render(scene, camera);
   start();
@@ -919,7 +939,9 @@ function go() {
 
     TWEEN.update(time);
 
-    if (state.photoInView) state.photoInView.update(delta);
+    if (state.freedom) {
+      state.freedom.update(delta);
+    }
 
     renderer.render(scene, camera);
     state.lastTime = time;
@@ -927,68 +949,30 @@ function go() {
     window.requestAnimationFrame(update);
   }
 
-  function setHoverThumnbail(thumbnail) {
-    var title = thumbnail ? "" + thumbnail._pile.series.name + " — " + thumbnail.photo.name : "";
-    dom.seriesTitle.textContent = title;
-
-    var cursor = thumbnail ? "url('images/basketball.png'), crosshair" : "url('images/myhand.png'), auto";
-    renderer.domElement.style.cursor = cursor;
-  }
-
-  function viewPhoto(photo) {
-    if (!!photo === !!state.photoInView) {
-      return;
-    }
-    if (state.loadingPhotoView) {
-      return;
-    }
-
-    if (photo) {
-      (function () {
-        state.loadingPhotoView = true;
-        var photoView = new PhotoView({ photo: photo, scene: scene });
-        photoView.load(function () {
-          state.loadingPhotoView = false;
-          setPhotoView(photoView);
-        });
-      })();
-    } else {
-      setPhotoView(null);
-    }
-  }
-
-  function exitCurrentPhotoView() {
-    if (state.photoInView) {
-      viewPhoto(null);
-    }
-  }
-
-  function setPhotoView(photoView) {
-    if (photoView) {
-      scene.remove(container);
-      photoView.activate();
-    } else {
-      state.photoInView.deactivate();
-      scene.add(container);
-    }
-
-    [dom.info, dom.photoViewInterface, dom.seriesTitle].forEach(function (el) {
-      if (photoView) el.classList.add("photo-view");else el.classList.remove("photo-view");
-    });
-
-    state.photoInView = photoView;
-    camera.position.z = photoView ? CAMERA_POSITION.view : CAMERA_POSITION.home;
-  }
-
   function createScene(callback) {
-    var remaining = 1;
+    var remaining = 0;
+    var hasLoaded = false;
 
     makeLights();
-    makePiles(loaded);
+    load(makeCage);
+    load(makeFreedom);
+
+    function load(fn) {
+      remaining += 1;
+      fn(function () {
+        remaining -= 1;
+        if (remaining === 0 && !hasLoaded) {
+          loaded();
+          hasLoaded = true;
+        }
+      });
+    }
 
     function loaded() {
-      remaining -= 1;
-      if (remaining === 0) callback();
+      state.cage.mesh.add(state.freedom.mesh);
+      scene.add(state.cage.mesh);
+
+      if (callback) callback();
     }
   }
 
@@ -997,32 +981,24 @@ function go() {
     scene.add(ambient);
   }
 
-  function makePiles(callback) {
-    var remaining = seriesData.length;
-    var half = Math.floor(seriesData.length / 2);
+  function makeFreedom(cb) {
+    var freedom = new Freedom();
+    freedom.load(function () {
+      state.freedom = freedom;
+      if (cb) cb();
+    });
+  }
 
-    seriesData.forEach(function (series, idx) {
-      var thumbnailPile = new ThumbnailPile({ series: series });
-      thumbnailPile.load(function () {
-        var x = -21 + 60 * (idx % half / half);
-        var y = idx % 2 === 0 ? 10 : -10;
-        thumbnailPile.mesh.position.set(x, y, 0);
-
-        container.add(thumbnailPile.mesh);
-        thumbnailMeshes = thumbnailMeshes.concat(thumbnailPile.thumbnails.map(function (t) {
-          return t.mesh;
-        }));
-
-        remaining -= 1;
-        if (remaining === 0 && callback) {
-          callback();
-        }
-      });
+  function makeCage(cb) {
+    var cage = new Cage();
+    cage.load(function () {
+      state.cage = cage;
+      if (cb) cb();
     });
   }
 }
 
-},{"./data":2,"./mouse-intersector":7,"./photo-view":8,"./thumbnail-pile":9,"ismobilejs":10,"three":11,"tween.js":12}],6:[function(require,module,exports){
+},{"./cage":1,"./freedom":2,"ismobilejs":7,"three":8,"tween.js":9}],6:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -1038,8 +1014,8 @@ var textureLoader = new THREE.TextureLoader();
 
 var cache = {};
 
-function load(photo, callback) {
-  var cacheKey = "" + photo.seriesPath + "/" + photo.path;
+function load(path, callback) {
+  var cacheKey = path;
   var cached = cache[cacheKey];
   if (cached) {
     callback(cached);
@@ -1056,13 +1032,13 @@ function load(photo, callback) {
     callback(model);
   };
 
-  var texturePath = "models/" + photo.seriesPath + "/" + photo.path + "/Thumbnail.jpg";
+  var texturePath = "models/" + path + "/Model.jpg";
   textureLoader.load(texturePath, function (texture) {
     model.texture = texture;
     loaded();
   });
 
-  var objPath = "models/" + photo.seriesPath + "/" + photo.path + "/Model.obj";
+  var objPath = "models/" + path + "/Model.obj";
   objLoader.load(objPath, function (group) {
     model.geometry = group.children[0].geometry;
     loaded();
@@ -1073,348 +1049,7 @@ function load(photo, callback) {
   });
 }
 
-},{"./lib/OBJLoader":4,"three":11}],7:[function(require,module,exports){
-"use strict";
-
-var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
-
-var THREE = require("three");
-
-var MouseIntersector = (function () {
-  function MouseIntersector(_ref) {
-    var camera = _ref.camera;
-    var renderer = _ref.renderer;
-    var meshes = _ref.meshes;
-
-    _classCallCheck(this, MouseIntersector);
-
-    this.camera = camera;
-    this.meshes = meshes;
-    this.renderer = renderer;
-
-    this.raycaster = new THREE.Raycaster();
-    this.mouse = new THREE.Vector2();
-    this.hoverListeners = [];
-    this.clickListeners = [];
-
-    document.addEventListener("mousemove", this.move.bind(this));
-    document.addEventListener("click", this.click.bind(this));
-  }
-
-  _createClass(MouseIntersector, {
-    addHoverListener: {
-      value: function addHoverListener(fn) {
-        this.hoverListeners.push(fn);
-      }
-    },
-    addClickListener: {
-      value: function addClickListener(fn) {
-        this.clickListeners.push(fn);
-      }
-    },
-    move: {
-      value: function move(ev) {
-        var intersects = this.getIntersections(ev);
-        this.notifyListeners(intersects, this.hoverListeners);
-      }
-    },
-    click: {
-      value: function click(ev) {
-        var intersects = this.getIntersections(ev);
-        this.notifyListeners(intersects, this.clickListeners);
-      }
-    },
-    notifyListeners: {
-      value: function notifyListeners(intersects, listeners) {
-        var firstObject = intersects.length > 0 ? intersects[0].object : null;
-        listeners.forEach(function (listener) {
-          listener(firstObject, intersects);
-        });
-      }
-    },
-    getIntersections: {
-      value: function getIntersections(ev) {
-        this.mouse.x = ev.clientX / this.renderer.domElement.clientWidth * 2 - 1;
-        this.mouse.y = -(ev.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
-
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-
-        var intersects = this.raycaster.intersectObjects(this.meshes);
-        return intersects;
-      }
-    }
-  });
-
-  return MouseIntersector;
-})();
-
-module.exports = MouseIntersector;
-
-},{"three":11}],8:[function(require,module,exports){
-"use strict";
-
-var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
-
-var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
-
-var THREE = require("three");
-
-var loadModel = _interopRequire(require("./model-cache"));
-
-var createGrid = _interopRequire(require("./grid"));
-
-var BACKGROUNDS = ["texture", "black", "grid"];
-
-var PhotoView = (function () {
-  function PhotoView(_ref) {
-    var photo = _ref.photo;
-    var scene = _ref.scene;
-
-    _classCallCheck(this, PhotoView);
-
-    this.photo = photo;
-    this.scene = scene;
-
-    this.container = new THREE.Object3D();
-    this.state = {
-      active: false,
-      showTexture: true,
-      wireframe: false,
-      background: "texture",
-      rps: 2
-    };
-  }
-
-  _createClass(PhotoView, {
-    load: {
-      value: function load(callback) {
-        var _this = this;
-
-        var _ref = this;
-
-        var photo = _ref.photo;
-        var container = _ref.container;
-
-        loadModel(photo, function (_ref2) {
-          var geometry = _ref2.geometry;
-          var texture = _ref2.texture;
-
-          _this.geometry = geometry;
-          _this.texture = texture;
-
-          geometry.center();
-
-          var material = _this.material = new THREE.MeshStandardMaterial({
-            roughness: 0.8,
-            metalness: 0.3,
-            map: texture
-          });
-          material.side = THREE.DoubleSide;
-
-          var mesh = _this.mesh = new THREE.Mesh(geometry, material);
-          container.add(mesh);
-
-          _this.setWireframe(_this.state.wireframe);
-          _this.setShowTexture(_this.state.showTexture);
-
-          if (callback) callback();
-        });
-      }
-    },
-    activate: {
-      value: function activate() {
-        this.state.active = true;
-        this.setBackground(this.state.background);
-        this.scene.add(this.container);
-      }
-    },
-    deactivate: {
-      value: function deactivate() {
-        var permanent = arguments[0] === undefined ? true : arguments[0];
-
-        this.state.active = false;
-        this.scene.background = new THREE.Color(16777215);
-        this.scene.remove(this.container);
-        this.grid = null;
-
-        if (permanent) {
-          this.container = null;
-          this.material = null;
-          this.mesh = null;
-        }
-      }
-    },
-    update: {
-      value: function update(delta) {
-        if (this.state.active) {
-          if (this.mesh) {
-            this.mesh.rotation.y += this.state.rps * (delta / 1000);
-          }
-        }
-      }
-    },
-    keydown: {
-      value: function keydown(ev) {}
-    },
-    mousedown: {
-      value: function mousedown(ev) {}
-    },
-    mouseup: {
-      value: function mouseup(ev) {}
-    },
-    mousemove: {
-      value: function mousemove(ev) {}
-    },
-    wireframeButtonPressed: {
-      value: function wireframeButtonPressed() {
-        this.setWireframe(!this.state.wireframe);
-      }
-    },
-    textureButtonPressed: {
-      value: function textureButtonPressed() {
-        this.setShowTexture(!this.state.showTexture);
-      }
-    },
-    lightingButtonPressed: {
-      value: function lightingButtonPressed() {}
-    },
-    backgroundButtonPressed: {
-      value: function backgroundButtonPressed() {
-        var backgroundIndex = (BACKGROUNDS.indexOf(this.state.background) + 1) % BACKGROUNDS.length;
-        this.setBackground(BACKGROUNDS[backgroundIndex]);
-      }
-    },
-    setWireframe: {
-      value: function setWireframe(wireframe) {
-        this.state.wireframe = wireframe;
-
-        if (this.material) {
-          this.material.wireframe = wireframe;
-        }
-      }
-    },
-    setShowTexture: {
-      value: function setShowTexture(showTexture) {
-        this.state.showTexture = showTexture;
-
-        if (this.material) {
-          if (showTexture) {
-            this.material.color.setHex(16777215);
-            this.material.map = this.texture;
-          } else {
-            this.material.color.setHex(8947848);
-            this.material.map = null;
-          }
-        }
-      }
-    },
-    setBackground: {
-      value: function setBackground(background) {
-        this.state.background = background;
-
-        switch (background) {
-          case "texture":
-            this.scene.background = this.texture;
-            break;
-
-          case "black":
-            this.scene.background = new THREE.Color(0);
-            break;
-
-          case "grid":
-            this.scene.background = new THREE.Color(16777215);
-            if (!this.grid) this.grid = createGrid({ length: 60, gridLength: 20 });
-            this.scene.add(this.grid);
-            break;
-        }
-
-        if (background !== "grid" && this.grid) {
-          this.scene.remove(this.grid);
-        }
-      }
-    }
-  });
-
-  return PhotoView;
-})();
-
-module.exports = PhotoView;
-
-},{"./grid":3,"./model-cache":6,"three":11}],9:[function(require,module,exports){
-"use strict";
-
-var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
-
-var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
-
-var THREE = require("three");
-
-var Thumbnail = _interopRequire(require("./Thumbnail"));
-
-var ThumbnailPile = (function () {
-  function ThumbnailPile(_ref) {
-    var series = _ref.series;
-    var _ref$spread = _ref.spread;
-    var spread = _ref$spread === undefined ? 5 : _ref$spread;
-
-    _classCallCheck(this, ThumbnailPile);
-
-    this.series = series;
-    this.spread = spread;
-    this.mesh = new THREE.Object3D();
-    this.mesh._pile = this;
-  }
-
-  _createClass(ThumbnailPile, {
-    load: {
-      value: function load(callback) {
-        var _this = this;
-
-        var _ref = this;
-
-        var series = _ref.series;
-        var mesh = _ref.mesh;
-
-        var remaining = series.photos.length;
-        var thumbnails = this.thumbnails = [];
-
-        series.photos.forEach(function (photo) {
-          var thumbnail = new Thumbnail({ photo: photo, seriesPath: series.path, scale: 2 });
-          thumbnail._pile = _this;
-          thumbnails.push(thumbnail);
-
-          thumbnail.load(function () {
-            thumbnail.mesh.position.set(_this.sp(), _this.sp(), _this.sp());
-            thumbnail.mesh.rotation.set(Math.PI / 2 + (Math.random() - 0.5) * 0.2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2);
-            mesh.add(thumbnail.mesh);
-
-            remaining -= 1;
-            if (callback && remaining === 0) {
-              callback();
-            }
-          });
-        });
-      }
-    },
-    sp: {
-      value: function sp() {
-        return (Math.random() - 0.5) * this.spread;
-      }
-    }
-  });
-
-  return ThumbnailPile;
-})();
-
-module.exports = ThumbnailPile;
-
-},{"./Thumbnail":1,"three":11}],10:[function(require,module,exports){
+},{"./lib/OBJLoader":4,"three":8}],7:[function(require,module,exports){
 /**
  * isMobile.js v0.4.0
  *
@@ -1553,7 +1188,7 @@ module.exports = ThumbnailPile;
 
 })(this);
 
-},{}],11:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -43852,7 +43487,7 @@ module.exports = ThumbnailPile;
 
 })));
 
-},{}],12:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function (process){
 /**
  * Tween.js - Licensed under the MIT license
@@ -44726,7 +44361,7 @@ TWEEN.Interpolation = {
 })(this);
 
 }).call(this,require('_process'))
-},{"_process":13}],13:[function(require,module,exports){
+},{"_process":10}],10:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};

@@ -7,8 +7,8 @@ let textureLoader = new THREE.TextureLoader();
 
 let cache = {};
 
-export default function load (photo, callback) {
-  let cacheKey = `${photo.seriesPath}/${photo.path}`;
+export default function load (path, callback) {
+  let cacheKey = path;
   let cached = cache[cacheKey];
   if (cached) {
     callback(cached);
@@ -25,13 +25,13 @@ export default function load (photo, callback) {
     callback(model);
   };
 
-  let texturePath = `models/${photo.seriesPath}/${photo.path}/Thumbnail.jpg`;
+  let texturePath = `models/${path}/Model.jpg`;
   textureLoader.load(texturePath, texture => {
     model.texture = texture;
     loaded();
   });
 
-  let objPath = `models/${photo.seriesPath}/${photo.path}/Model.obj`;
+  let objPath = `models/${path}/Model.obj`;
   objLoader.load(objPath, group => {
     model.geometry = group.children[0].geometry;
     loaded();
