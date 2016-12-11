@@ -89,7 +89,122 @@ var Cage = (function () {
 
 module.exports = Cage;
 
-},{"./grid":3,"./model-cache":6,"three":8}],2:[function(require,module,exports){
+},{"./grid":4,"./model-cache":8,"three":10}],2:[function(require,module,exports){
+"use strict";
+
+var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
+
+// Based on stemkoski.github.io/Three.js/Camera-Texture.html
+// WebGLRenderTarget docs http://threejs.org/docs/api/renderers/WebGLRenderTarget.html
+
+var THREE = window.THREE || require("three");
+
+var CameraTexture = (function () {
+  function CameraTexture(options) {
+    _classCallCheck(this, CameraTexture);
+
+    var renderer = options.renderer;
+    var scene = options.scene;
+    var _options$renderTargetSize = options.renderTargetSize;
+    var renderTargetSize = _options$renderTargetSize === undefined ? { width: renderer.getSize().width, height: renderer.getSize().height } : _options$renderTargetSize;
+    var _options$renderTargetSizeMirrorsWindow = options.renderTargetSizeMirrorsWindow;
+    var renderTargetSizeMirrorsWindow = _options$renderTargetSizeMirrorsWindow === undefined ? true : _options$renderTargetSizeMirrorsWindow;
+    var _options$cameraProvider = options.cameraProvider;
+    var cameraProvider = _options$cameraProvider === undefined ? function () {
+      return new THREE.PerspectiveCamera(70, renderTargetSize.width / renderTargetSize.height, 0.01, 10000);
+    } : _options$cameraProvider;
+
+    this.renderer = renderer;
+    this.scene = scene;
+    this.renderTargetSize = renderTargetSize;
+    this.renderTargetSizeMirrorsWindow = renderTargetSizeMirrorsWindow;
+    this.camera = cameraProvider();
+
+    this.cameraParent = new THREE.Object3D();
+    this.cameraParent.add(this.camera);
+    this.scene.add(this.cameraParent);
+
+    this.finalRenderTarget = new THREE.WebGLRenderTarget(renderTargetSize.width, renderTargetSize.height, { format: THREE.RGBFormat });
+    this.texture = this.finalRenderTarget.texture;
+
+    // This is all for fixing the mirrored texture we get directly from alt camera
+    this.screenScene = new THREE.Scene();
+    this.screenCamera = this._makeScreenCamera();
+    this.screenScene.add(this.screenCamera);
+
+    this.mirroredRenderTarget = new THREE.WebGLRenderTarget(renderTargetSize.width, renderTargetSize.height, { format: THREE.RGBFormat });
+    this.screenMaterial = new THREE.MeshBasicMaterial({ map: this.mirroredRenderTarget.texture });
+
+    this.screen = this._makeScreen();
+    this.screenScene.add(this.screen);
+
+    window.addEventListener("resize", this._resize.bind(this));
+  }
+
+  _createClass(CameraTexture, {
+    _resize: {
+      value: function _resize() {
+        var s = this.renderer.getSize();
+
+        if (this.renderTargetSizeMirrorsWindow) {
+          this.finalRenderTarget.setSize(s.width, s.height);
+          this.mirroredRenderTarget.setSize(s.width, s.height);
+        }
+
+        this.camera.aspect = s.width / s.height;
+        this.camera.updateProjectionMatrix();
+
+        this.screenScene.remove(this.screenCamera);
+        this.screenCamera = this._makeScreenCamera();
+        this.screenScene.add(this.screenCamera);
+
+        this.screenScene.remove(this.screen);
+        this.screen = this._makeScreen();
+        this.screenScene.add(this.screen);
+      }
+    },
+    _makeScreenCamera: {
+      value: function _makeScreenCamera() {
+        var s = this.renderer.getSize();
+
+        var camera = new THREE.OrthographicCamera(s.width / -2, s.width / 2, s.height / 2, s.height / -2, -10000, 10000);
+        camera.position.z = 1;
+        return camera;
+      }
+    },
+    _makeScreen: {
+      value: function _makeScreen() {
+        var s = this.renderer.getSize();
+        var screenGeometry = new THREE.PlaneBufferGeometry(s.width, s.height);
+        return new THREE.Mesh(screenGeometry, this.screenMaterial);
+      }
+    },
+    update: {
+      value: function update() {
+        this.renderer.render(this.scene, this.camera, this.mirroredRenderTarget, true);
+        this.renderer.render(this.screenScene, this.screenCamera, this.finalRenderTarget, true);
+      }
+    },
+    getCameraParent: {
+      value: function getCameraParent() {
+        return this.cameraParent;
+      }
+    },
+    getCamera: {
+      value: function getCamera() {
+        return this.camera;
+      }
+    }
+  });
+
+  return CameraTexture;
+})();
+
+module.exports = CameraTexture;
+
+},{"three":10}],3:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -156,7 +271,7 @@ var Freedom = (function () {
 
 module.exports = Freedom;
 
-},{"./model-cache":6,"three":8}],3:[function(require,module,exports){
+},{"./model-cache":8,"three":10}],4:[function(require,module,exports){
 "use strict";
 
 module.exports = createGrid;
@@ -211,7 +326,7 @@ function createGrid() {
   return container;
 }
 
-},{"three":8}],4:[function(require,module,exports){
+},{"three":10}],5:[function(require,module,exports){
 
 
 /**
@@ -868,7 +983,7 @@ OBJLoader.prototype = {
 
 };
 
-},{"three":8}],5:[function(require,module,exports){
+},{"three":10}],6:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -880,6 +995,8 @@ var isMobile = require("ismobilejs");
 var Freedom = _interopRequire(require("./freedom"));
 
 var Cage = _interopRequire(require("./cage"));
+
+var Mirrors = _interopRequire(require("./mirrors"));
 
 if (isMobile.any) {
   var mobileWarning = document.createElement("div");
@@ -920,7 +1037,8 @@ function go() {
     startTime: null,
     lastTime: null,
     freedom: null,
-    cage: null
+    cage: null,
+    mirrors: null
   };
 
   window.addEventListener("resize", resize);
@@ -958,6 +1076,9 @@ function go() {
     if (state.cage) {
       state.cage.update(delta);
     }
+    if (state.mirrors) {
+      state.mirrors.update(delta);
+    }
 
     renderer.render(scene, camera);
     state.lastTime = time;
@@ -971,6 +1092,8 @@ function go() {
 
     makeLights();
     makeGround();
+    makeMirrors();
+
     load(makeCage);
     load(makeFreedom);
 
@@ -986,6 +1109,8 @@ function go() {
     }
 
     function loaded() {
+      state.cage.mesh.position.y = 0.5;
+
       scene.add(state.freedom.mesh);
       scene.add(state.cage.mesh);
 
@@ -997,10 +1122,10 @@ function go() {
     var ambient = new THREE.AmbientLight(2236962, 0.1);
     scene.add(ambient);
 
-    var lights = [new THREE.PointLight(16711680, 1, 30, 4), new THREE.SpotLight(16777215, 1.5, 20, 0.2), new THREE.PointLight(255, 1, 30, 4)];
+    var lights = [new THREE.PointLight(16711680, 1, 30, 4), new THREE.SpotLight(16777215, 1.5, 20, 0.6), new THREE.PointLight(255, 1, 30, 4)];
 
     lights[0].position.set(-0.5, -0.5, 3);
-    lights[1].position.set(0, -5, 10);
+    lights[1].position.set(0, -6, 9);
     lights[2].position.set(0.5, -0.5, -3);
 
     lights.forEach(function (light) {
@@ -1029,6 +1154,11 @@ function go() {
     scene.add(mesh);
   }
 
+  function makeMirrors() {
+    state.mirrors = new Mirrors({ renderer: renderer, scene: scene });
+    state.mirrors.activate();
+  }
+
   function makeFreedom(cb) {
     var freedom = new Freedom();
     freedom.load(function () {
@@ -1046,7 +1176,126 @@ function go() {
   }
 }
 
-},{"./cage":1,"./freedom":2,"ismobilejs":7,"three":8,"tween.js":9}],6:[function(require,module,exports){
+},{"./cage":1,"./freedom":3,"./mirrors":7,"ismobilejs":9,"three":10,"tween.js":11}],7:[function(require,module,exports){
+"use strict";
+
+var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
+
+var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
+
+var THREE = require("three");
+
+var CameraTexture = _interopRequire(require("./camera-texture"));
+
+var Mirrors = (function () {
+  function Mirrors(_ref) {
+    var renderer = _ref.renderer;
+    var scene = _ref.scene;
+    var _ref$size = _ref.size;
+    var size = _ref$size === undefined ? 6 : _ref$size;
+
+    _classCallCheck(this, Mirrors);
+
+    this.renderer = renderer;
+    this.scene = scene;
+    this.size = size;
+
+    this.state = {
+      active: false
+    };
+
+    this.container = new THREE.Object3D();
+    this.cameraTextures = [];
+    this.mirrors = [];
+
+    for (var i = 0; i < 3; i++) {
+      var cameraTexture = new CameraTexture({ renderer: renderer, scene: scene });
+      this.cameraTextures.push(cameraTexture);
+
+      var mirror = this._makeMirror(cameraTexture);
+
+      var light = new THREE.PointLight(8947848, 1, 20, 2);
+      mirror.add(light);
+
+      switch (i) {
+        case 0:
+          mirror.position.set(0, 0, -size);
+          cameraTexture.cameraParent.position.set(0, 0, -size + 0.1);
+          cameraTexture.cameraParent.rotation.y = Math.PI;
+          light.position.set(2, 2, 0);
+          break;
+        case 1:
+          mirror.rotation.y = Math.PI / 2;
+          mirror.position.set(-size, 0, 0);
+          cameraTexture.cameraParent.position.set(-size + 0.1, 0, 0);
+          cameraTexture.cameraParent.rotation.y = -Math.PI / 2;
+          light.position.set(-5, 2, 0);
+          break;
+        case 2:
+          mirror.rotation.y = -Math.PI / 2;
+          mirror.position.set(size, 0, 0);
+          cameraTexture.cameraParent.position.set(size - 0.1, 0, 0);
+          cameraTexture.cameraParent.rotation.y = Math.PI / 2;
+          light.position.set(5, 2, 0);
+          break;
+      }
+
+      this.mirrors.push(mirror);
+      this.container.add(mirror);
+    }
+  }
+
+  _createClass(Mirrors, {
+    activate: {
+      value: function activate() {
+        this.state.active = true;
+        this.scene.add(this.container);
+      }
+    },
+    deactivate: {
+      value: function deactivate() {
+        this.state.active = false;
+        this.scene.remove(this.container);
+      }
+    },
+    update: {
+      value: function update(delta) {
+        if (!this.state.active) {
+          return;
+        }for (var i = 0; i < this.cameraTextures.length; i++) {
+          this.cameraTextures[i].update(delta);
+        }
+      }
+    },
+    _makeMirror: {
+      value: function _makeMirror(cameraTexture) {
+        var geometry = new THREE.BoxBufferGeometry(8, 8, 0.1);
+        geometry.center();
+
+        var material = new THREE.MeshStandardMaterial({
+          roughness: 1,
+          metalness: 0.05,
+          map: cameraTexture.texture
+        });
+        material.side = THREE.DoubleSide;
+
+        var mesh = new THREE.Mesh(geometry, material);
+        mesh.receiveShadow = true;
+        mesh._cameraTexture = cameraTexture;
+
+        return mesh;
+      }
+    }
+  });
+
+  return Mirrors;
+})();
+
+module.exports = Mirrors;
+
+},{"./camera-texture":2,"three":10}],8:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -1097,7 +1346,7 @@ function load(path, callback) {
   });
 }
 
-},{"./lib/OBJLoader":4,"three":8}],7:[function(require,module,exports){
+},{"./lib/OBJLoader":5,"three":10}],9:[function(require,module,exports){
 /**
  * isMobile.js v0.4.0
  *
@@ -1236,7 +1485,7 @@ function load(path, callback) {
 
 })(this);
 
-},{}],8:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -43535,7 +43784,7 @@ function load(path, callback) {
 
 })));
 
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 (function (process){
 /**
  * Tween.js - Licensed under the MIT license
@@ -44409,7 +44658,7 @@ TWEEN.Interpolation = {
 })(this);
 
 }).call(this,require('_process'))
-},{"_process":10}],10:[function(require,module,exports){
+},{"_process":12}],12:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -44505,4 +44754,4 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}]},{},[5]);
+},{}]},{},[6]);

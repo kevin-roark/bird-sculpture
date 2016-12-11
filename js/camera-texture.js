@@ -11,7 +11,7 @@ export default class CameraTexture {
       renderTargetSize = { width: renderer.getSize().width, height: renderer.getSize().height },
       renderTargetSizeMirrorsWindow = true,
       cameraProvider = () => {
-        return new THREE.PerspectiveCamera(75, renderTargetSize.width / renderTargetSize.height, 0.01, 10000);
+        return new THREE.PerspectiveCamera(70, renderTargetSize.width / renderTargetSize.height, 0.01, 10000);
       }
     } = options;
 

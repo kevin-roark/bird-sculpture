@@ -5,6 +5,7 @@ let isMobile = require('ismobilejs');
 
 import Freedom from './freedom';
 import Cage from './cage';
+import Mirrors from './mirrors';
 
 if (isMobile.any) {
   let mobileWarning = document.createElement('div');
@@ -45,7 +46,8 @@ function go () {
     startTime: null,
     lastTime: null,
     freedom: null,
-    cage: null
+    cage: null,
+    mirrors: null
   };
 
   window.addEventListener('resize', resize);
@@ -83,6 +85,9 @@ function go () {
     if (state.cage) {
       state.cage.update(delta);
     }
+    if (state.mirrors) {
+      state.mirrors.update(delta);
+    }
 
     renderer.render(scene, camera);
     state.lastTime = time;
@@ -96,6 +101,8 @@ function go () {
 
     makeLights();
     makeGround();
+    makeMirrors();
+
     load(makeCage);
     load(makeFreedom);
 
@@ -111,6 +118,8 @@ function go () {
     }
 
     function loaded () {
+      state.cage.mesh.position.y = 0.5;
+
       scene.add(state.freedom.mesh);
       scene.add(state.cage.mesh);
 
@@ -124,12 +133,12 @@ function go () {
 
     let lights = [
       new THREE.PointLight(0xff0000, 1, 30, 4),
-      new THREE.SpotLight(0xffffff, 1.5, 20, 0.2),
+      new THREE.SpotLight(0xffffff, 1.5, 20, 0.6),
       new THREE.PointLight(0x0000ff, 1, 30, 4)
     ];
 
     lights[0].position.set(-0.5, -0.5, 3);
-    lights[1].position.set(0, -5, 10);
+    lights[1].position.set(0, -6, 9);
     lights[2].position.set(0.5, -0.5, -3);
 
     lights.forEach(light => {
@@ -156,6 +165,11 @@ function go () {
     mesh.position.y = -10;
     mesh.receiveShadow = true;
     scene.add(mesh);
+  }
+
+  function makeMirrors () {
+    state.mirrors = new Mirrors({ renderer, scene });
+    state.mirrors.activate();
   }
 
   function makeFreedom (cb) {
