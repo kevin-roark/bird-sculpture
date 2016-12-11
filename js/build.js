@@ -13,7 +13,7 @@ var loadModel = _interopRequire(require("./model-cache"));
 
 var createGrid = _interopRequire(require("./grid"));
 
-var DEFAULT_MODE = "none";
+var DEFAULT_MODE = "2";
 
 var Cage = (function () {
   function Cage() {
@@ -25,9 +25,19 @@ var Cage = (function () {
     _classCallCheck(this, Cage);
 
     this.mode = mode;
+    this.state = {
+      rps: -0.2
+    };
   }
 
   _createClass(Cage, {
+    update: {
+      value: function update(delta) {
+        if (this.mesh) {
+          this.mesh.rotation.y += this.state.rps * (delta / 1000);
+        }
+      }
+    },
     load: {
       value: function load(callback) {
         var _this = this;
@@ -56,6 +66,8 @@ var Cage = (function () {
                 material.side = THREE.DoubleSide;
 
                 var mesh = _this.mesh = new THREE.Mesh(geometry, material);
+                mesh.scale.set(10, 10, 10);
+                mesh.receiveShadow = true;
                 callback(mesh);
               });
             }break;
@@ -63,8 +75,7 @@ var Cage = (function () {
           default:
             {
               setTimeout(function () {
-                var mesh = _this.mesh = createGrid({ length: 0.33, gridLength: 7 });
-                console.log(_this.mesh);
+                var mesh = _this.mesh = createGrid({ length: 3.33, gridLength: 7 });
                 callback(mesh);
               }, 1);
             }break;
@@ -113,6 +124,7 @@ var Freedom = (function () {
         var _this = this;
 
         var mesh = this.mesh = new THREE.Object3D();
+        mesh.scale.set(10, 10, 10);
 
         loadModel("freedom", function (_ref) {
           var geometry = _ref.geometry;
@@ -130,6 +142,7 @@ var Freedom = (function () {
           var book = _this.book = new THREE.Mesh(geometry, material);
           book.rotation.x = -0.24;
           book.rotation.z = -Math.PI / 2;
+          book.receiveShadow = true;
           mesh.add(book);
 
           if (callback) callback(mesh);
@@ -883,7 +896,7 @@ function go() {
   var renderer = new THREE.WebGLRenderer({
     antialias: true
   });
-  renderer.setClearColor(2236962);
+  renderer.setClearColor(0);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -891,7 +904,7 @@ function go() {
   window.scene = scene;
 
   var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10000);
-  camera.position.z = 1;
+  camera.position.z = 10;
   scene.add(camera);
 
   var container = new THREE.Object3D();
@@ -942,6 +955,9 @@ function go() {
     if (state.freedom) {
       state.freedom.update(delta);
     }
+    if (state.cage) {
+      state.cage.update(delta);
+    }
 
     renderer.render(scene, camera);
     state.lastTime = time;
@@ -954,6 +970,7 @@ function go() {
     var hasLoaded = false;
 
     makeLights();
+    makeGround();
     load(makeCage);
     load(makeFreedom);
 
@@ -969,7 +986,7 @@ function go() {
     }
 
     function loaded() {
-      state.cage.mesh.add(state.freedom.mesh);
+      scene.add(state.freedom.mesh);
       scene.add(state.cage.mesh);
 
       if (callback) callback();
@@ -977,8 +994,39 @@ function go() {
   }
 
   function makeLights() {
-    var ambient = new THREE.AmbientLight(16777215, 1);
+    var ambient = new THREE.AmbientLight(2236962, 0.1);
     scene.add(ambient);
+
+    var lights = [new THREE.PointLight(16711680, 1, 30, 4), new THREE.SpotLight(16777215, 1.5, 20, 0.2), new THREE.PointLight(255, 1, 30, 4)];
+
+    lights[0].position.set(-0.5, -0.5, 3);
+    lights[1].position.set(0, -5, 10);
+    lights[2].position.set(0.5, -0.5, -3);
+
+    lights.forEach(function (light) {
+      light.castShadow = true;
+      light.shadow.mapSize.width = 1024;
+      light.shadow.mapSize.height = 1024;
+
+      light.shadow.camera.near = 0.1;
+      light.shadow.camera.far = 100;
+      light.shadow.camera.fov = 30;
+
+      scene.add(light);
+    });
+  }
+
+  function makeGround() {
+    var geometry = new THREE.BoxBufferGeometry(1000, 1, 1000);
+    var material = new THREE.MeshStandardMaterial({
+      roughness: 0.5,
+      metalness: 0.05,
+      color: 16777215
+    });
+    var mesh = new THREE.Mesh(geometry, material);
+    mesh.position.y = -10;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
   }
 
   function makeFreedom(cb) {

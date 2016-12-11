@@ -17,6 +17,7 @@ export default class Freedom {
 
   load (callback) {
     let mesh = this.mesh = new THREE.Object3D();
+    mesh.scale.set(10, 10, 10);
 
     loadModel('freedom', ({ geometry, texture }) => {
       geometry.center();
@@ -31,6 +32,7 @@ export default class Freedom {
       let book = this.book = new THREE.Mesh(geometry, material);
       book.rotation.x = -0.24;
       book.rotation.z = -Math.PI / 2;
+      book.receiveShadow = true;
       mesh.add(book);
 
       if (callback) callback(mesh);
