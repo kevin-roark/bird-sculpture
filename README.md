@@ -1,2 +1,2 @@
 # bird-sculpture
-VISUAL FOR: bird sculpture (BIRD SCULPTURE)
+Three.js projection for: Bird Sculpture (FREEDOM)
