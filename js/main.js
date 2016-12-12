@@ -100,7 +100,7 @@ function go () {
     if (state.bookIsBird) {
       freedom.setTexture(videoTexture.texture);
       for (let i = 0; i < mirrors.length; i++) {
-        if (Math.random() < 0.5) {
+        if (Math.random() > 0.4) {
           mirrors.setMirrorTexture(i, videoTexture.texture);
         }
       }
@@ -111,7 +111,7 @@ function go () {
       }
     }
 
-    let time = Math.random() * 4000 + 200;
+    let time = Math.random() * Math.random() * 10000 + 200;
     setTimeout(mushTextures, time);
   }
 
